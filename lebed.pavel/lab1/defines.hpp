@@ -30,6 +30,7 @@ const static string g_log_identity = "lebed_daemon";
 
 const static string g_folder1_key = "SRC";
 const static string g_folder2_key = "DST";
-const static string g_interval_key = "INTERVAL";
+const static string g_update_interval_key = "UPDATE_INTERVAL";
+const static string g_old_interval_key = "OLD_INTERVAL";
 
 #endif // __DEFINES_H__
