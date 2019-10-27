@@ -5,36 +5,42 @@
 
 static ConfigReader g_conf_reader;
 static Pid g_pid(g_pid_file);
+static FilesMover g_file_mover;
+static bool g_work = true;
 
-static void start_proc(FilesMover &FileMover)
+static void start_proc()
 {
 	while (true)
 	{
-		if (!FileMover.MoveFiles())
+		while (!g_work)
+			sleep(1);
+		if (!g_file_mover.MoveFiles())
 			exit(EXIT_FAILURE);
 	}
 }
 
-static void parse_config(string &Folder1, string& Folder2, 
-						 int &UpdateInterval, int &OldInterval)
+static void parse_config()
 {
-	UpdateInterval = OldInterval = 0;
+	int update_interval = 0, old_interval = 0;
+	string src, dst;
 
-	if (!g_conf_reader.GetAsStr(g_folder1_key, Folder1) ||
-		!g_conf_reader.GetAsStr(g_folder2_key, Folder2) ||
-		!g_conf_reader.GetAsInt(g_update_interval_key, UpdateInterval) ||
-		!g_conf_reader.GetAsInt(g_old_interval_key, OldInterval))
+	if (!g_conf_reader.GetAsStr(g_folder1_key, src) ||
+		!g_conf_reader.GetAsStr(g_folder2_key, dst) ||
+		!g_conf_reader.GetAsInt(g_update_interval_key, update_interval) ||
+		!g_conf_reader.GetAsInt(g_old_interval_key, old_interval))
 		exit(EXIT_FAILURE);
 
-	if (UpdateInterval <= 0 || OldInterval <= 0)
+	if (update_interval<= 0 || old_interval <= 0)
 	{
-		if (UpdateInterval <= 0)
+		if (update_interval <= 0)
 			g_logger.LogError("Update interval is not positive!");
 
-		if (OldInterval <= 0)
+		if (old_interval <= 0)
 			g_logger.LogError("Check file lifetime interval is not positive!");
 		exit(EXIT_FAILURE);
 	}
+
+	g_file_mover = FilesMover(src, dst, (time_t)update_interval, (time_t)old_interval);
 }
 
 static void signal_handler(int sig)
@@ -48,8 +54,13 @@ static void signal_handler(int sig)
 		exit(EXIT_SUCCESS);
 		break;
 	case SIGHUP:
+		g_work = false;
+		
 		g_conf_reader.Parse();
+		parse_config();
 		g_logger.LogNotice("Hangup signal");
+
+		g_work = true;
 		break;
 	default:
 		g_logger.LogNotice("Unknown signal");
@@ -87,14 +98,9 @@ int main(int argc, char** argv)
 
 	if (!g_conf_reader.Parse())
 		exit(EXIT_FAILURE);
-	string folder1, folder2;
-	int update_interval, old_interval;
-	parse_config(folder1, folder2, update_interval, old_interval);
+	parse_config();
 	// remember config absolute path
 	g_conf_reader.SetFile(realpath(config_file.c_str(), nullptr));
-	// create file mover
-	FilesMover file_mover = FilesMover(folder1, folder2, (time_t)update_interval, (time_t)old_interval);
-
 	// Check child session id
 	if (setsid() < 0)
 	{
@@ -135,5 +141,5 @@ int main(int argc, char** argv)
 	signal(SIGTERM, signal_handler);
 
 	// start working
-	start_proc(file_mover);
+	start_proc();
 }
