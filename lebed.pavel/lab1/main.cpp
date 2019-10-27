@@ -5,13 +5,12 @@
 
 static ConfigReader g_conf_reader;
 static Pid g_pid(g_pid_file);
-static FilesMover g_file_mover;
 
-static void start_proc()
+static void start_proc(FilesMover &FileMover)
 {
 	while (true)
 	{
-		if (!g_file_mover.MoveFiles())
+		if (!FileMover.MoveFiles())
 			exit(EXIT_FAILURE);
 	}
 }
@@ -94,7 +93,7 @@ int main(int argc, char** argv)
 	// remember config absolute path
 	g_conf_reader.SetFile(realpath(config_file.c_str(), nullptr));
 	// create file mover
-	g_file_mover = FilesMover(folder1, folder2, (time_t)update_interval, (time_t)old_interval);
+	FilesMover file_mover = FilesMover(folder1, folder2, (time_t)update_interval, (time_t)old_interval);
 
 	// Check child session id
 	if (setsid() < 0)
@@ -136,5 +135,5 @@ int main(int argc, char** argv)
 	signal(SIGTERM, signal_handler);
 
 	// start working
-	start_proc();
+	start_proc(file_mover);
 }
