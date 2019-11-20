@@ -1,4 +1,5 @@
-SRC /home/pavel/projects/lab1/SRC_DIR/1
+
+SRC /home/pavel/projects/lab1/SRC_DIR
 DST /home/pavel/projects/lab1/DST_DIR
 UPDATE_INTERVAL 30
 OLD_INTERVAL 20
