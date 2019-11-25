@@ -2,13 +2,13 @@
 #define __LOGGER_H__
 
 #include <string>
-
-
+#include <syslog.h>
 
 class Logger
 {
 	using string = std::string;
 public:
+
 	Logger(const string &Identity) : identity(Identity), is_opened(false) {}
 	Logger() = default;
 

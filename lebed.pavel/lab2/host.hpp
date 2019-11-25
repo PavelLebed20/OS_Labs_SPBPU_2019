@@ -1,65 +1,49 @@
 #ifndef __HOST_H__
 #define __HOST_H__
 
+#include <map>
+
 #include "config_reader.hpp"
 #include "pid.hpp"
+#include "connection.hpp"
+
+#include <memory>
 
 class Host
 {
 private:
-	Host(const string &pid_file) :
-		pid(pid_file) 
-	{
-	};
+	Host() = default;
 
 public:
-	static Host& GetRunner()
+	void Init(const string& ConfigFile, const string& PidFile);
+
+	static Host& GetInstance();
+
+	static void Run();
+
+private:
+	struct UserInfo
 	{
-		static Host g_runner(g_pid_file);
+		int pid;
+		Connection* conn;
 
-		return g_runner;
-	}
+		UserInfo(int Pid, Connection *Conn) :
+			pid(Pid), conn(Conn)
+		{}
+	};
 
+	static void ParseConfig();
 
-	static void ParseConfig()
-	{
+	static void SignalHandler(int Sig, siginfo_t* Info, void* Ptr);
 
-	}
+	static void Terminate(int Code);
 
-	static void SignalHandler(int sig)
-	{
-		switch (sig)
-		{
-		case SIGTERM:
-			// Over process
-			g_logger.LogNotice("Teminate signal");
-			Host::GetRunner().pid.Destroy();
-			exit(EXIT_SUCCESS);
-			break;
-		case SIGHUP:
-			Host::GetRunner().conf_reader.Parse();
-			ParseConfig();
-			g_logger.LogNotice("Hangup signal");
-			break;
-		case SIGUSR1:
-			g_logger.LogNotice("User defined 1 signal");
-			break;
-		default:
-			g_logger.LogNotice("Unknown signal");
-			break;
-		}
-	}
-
-	static void Run()
-	{
-		while (true)
-		{
-			;
-		}
-	}
+	static bool MakeConnection(int Pid);
 
 	ConfigReader conf_reader;
 	Pid pid;
+	std::map<int, UserInfo> users;
+	int interval;
 };
 
 #endif // __HOST_H__
